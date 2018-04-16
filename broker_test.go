@@ -15,20 +15,20 @@ func makeCeleryMessage() (*CeleryMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return getCeleryMessage(encodedTaskMessage), nil
+	return getCeleryMessage(encodedTaskMessage, nil), nil
 }
 
 // test all brokers
 func getBrokers() []CeleryBroker {
 	return []CeleryBroker{
-		NewRedisCeleryBroker("localhost:6379", ""),
+		NewRedisCeleryBroker("localhost:6379", 0,""),
 		//NewAMQPCeleryBroker("amqp://"),
 	}
 }
 
 // TestSend is Redis specific test that sets CeleryMessage to queue
 func TestSend(t *testing.T) {
-	broker := NewRedisCeleryBroker("localhost:6379", "")
+	broker := NewRedisCeleryBroker("localhost:6379", 0,"")
 	celeryMessage, err := makeCeleryMessage()
 	if err != nil || celeryMessage == nil {
 		t.Errorf("failed to construct celery message: %v", err)
@@ -40,7 +40,7 @@ func TestSend(t *testing.T) {
 	}
 	conn := broker.Get()
 	defer conn.Close()
-	messageJSON, err := conn.Do("BLPOP", broker.queueName, "1")
+	messageJSON, err := conn.Do("BLPOP", broker.QueueName, "1")
 	if err != nil || messageJSON == nil {
 		t.Errorf("failed to get celery message from broker: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestSend(t *testing.T) {
 
 // TestGet is Redis specific test that gets CeleryMessage from queue
 func TestGet(t *testing.T) {
-	broker := NewRedisCeleryBroker("localhost:6379", "")
+	broker := NewRedisCeleryBroker("localhost:6379", 0,"")
 	celeryMessage, err := makeCeleryMessage()
 	if err != nil || celeryMessage == nil {
 		t.Errorf("failed to construct celery message: %v", err)
@@ -70,7 +70,7 @@ func TestGet(t *testing.T) {
 	}
 	conn := broker.Get()
 	defer conn.Close()
-	_, err = conn.Do("LPUSH", broker.queueName, jsonBytes)
+	_, err = conn.Do("LPUSH", broker.QueueName, jsonBytes)
 	if err != nil {
 		t.Errorf("failed to push celery message to redis: %v", err)
 	}
