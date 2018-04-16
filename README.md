@@ -2,12 +2,16 @@
 
 Go Client/Server for Celery Distributed Task Queue
 
-[![Build Status](https://travis-ci.org/shicky/gocelery.svg?branch=master)](https://travis-ci.org/shicky/gocelery)
-[![Coverage Status](https://coveralls.io/repos/github/shicky/gocelery/badge.svg?branch=master)](https://coveralls.io/github/shicky/gocelery?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/shicky/gocelery)](https://goreportcard.com/report/github.com/shicky/gocelery)
-[![GoDoc](https://godoc.org/github.com/shicky/gocelery?status.svg)](https://godoc.org/github.com/shicky/gocelery)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/shicky/gocelery/blob/master/LICENSE)
-[![motivation](https://img.shields.io/badge/made%20with-%E2%99%A1-ff69b4.svg)](https://github.com/shicky/gocelery)
+With new features updated contributed by @Danceiny.
+
+[![Coverage Status](https://coveralls.io/repos/github/Danceiny/gocelery/badge.svg?branch=master)](https://coveralls.io/github/Danceiny/gocelery?branch=master)
+[![GoDoc](https://godoc.org/github.com/Danceiny/gocelery?status.svg)](https://godoc.org/github.com/Danceiny/gocelery)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Danceiny/gocelery/blob/master/LICENSE)
+[![motivation](https://img.shields.io/badge/made%20with-%E2%99%A1-ff69b4.svg)](https://github.com/Danceiny/gocelery)
+
+## New features compared with gocelery/gocelery (original author)
+- [*] ApplyAsync call just like that in Python (currently supported in go client).
+- [ ] TODO: Support More options in go worker.
 
 ## Why?
 
@@ -18,7 +22,7 @@ You can also use this library as pure go distributed task queue.
 
 ## Go Celery Worker in Action
 
-![demo](https://raw.githubusercontent.com/shicky/gocelery/master/demo.gif)
+![demo](https://raw.githubusercontent.com/Danceiny/gocelery/master/demo.gif)
 
 ## Supported Brokers/Backends
 
