@@ -2,25 +2,141 @@ package gocelery
 
 import (
     "encoding/base64"
-    "encoding/json"
     "log"
     "reflect"
     "sync"
     "time"
-    "github.com/astaxie/beego/logs"
+    "github.com/liamylian/jsontime"
 )
 
+// GLOBAL 替换掉 encoding/json
+var (
+    json    = jsontime.ConfigWithCustomTimeFormat
+    ISO8601 = "2006-01-02T15:04:05"
+)
 // CeleryMessage is actual message to be sent to Redis
+// 参考：http://docs.celeryproject.org/en/latest/internals/protocol.html#definition
+// example:
+/*
+{
+	"body": "W1tdLCB7InkiOiAyODc4LCAieCI6IDU0NTZ9LCB7ImNob3JkIjogbnVsbCwgImNhbGxiYWNrcyI6IG51bGwsICJlcnJiYWNrcyI6IG51bGwsICJjaGFpbiI6IG51bGx9XQ==",
+	"headers": {
+		"origin": "gen66194@DanceinydeMacBook-Pro.local",
+		"root_id": "25abb5e6-d8c3-4b20-8dfb-7dc1be9ecf8f",
+		"expires": null,
+		"shadow": null,
+		"id": "25abb5e6-d8c3-4b20-8dfb-7dc1be9ecf8f",
+		"kwargsrepr": "{'y': 2878, 'x': 5456}",
+		"lang": "py",
+		"retries": 0,
+		"task": "worker.add_reflect",
+		"group": null,
+		"timelimit": [null, null],
+		"parent_id": null,
+		"argsrepr": "()",
+		"eta": null
+	},
+	"properties": {
+		"priority": 0,
+		"body_encoding": "base64",
+		"correlation_id": "25abb5e6-d8c3-4b20-8dfb-7dc1be9ecf8f",
+		"reply_to": "2f6f7ea8-dcc3-30a7-ae0c-4eb03ae4910c",
+		"delivery_info": {
+			"routing_key": "celery",
+			"exchange": ""
+		},
+		"delivery_mode": 2,
+		"delivery_tag": "a18604c0-5422-4592-877b-72e106744981"
+	},
+	"content-type": "application/json",
+	"content-encoding": "utf-8"
+}
+ */
 type CeleryMessage struct {
-    Body            string                 `json:"body"`
-    Headers         map[string]interface{} `json:"headers"`
-    ContentType     string                 `json:"content-type"`
-    Properties      CeleryProperties       `json:"properties"`
-    ContentEncoding string                 `json:"content-encoding"`
+    // body是语言相关的
+    //     object[] args,
+    //    Mapping kwargs,
+    //    Mapping embed {
+    //        'callbacks': Signature[] callbacks,
+    //        'errbacks': Signature[] errbacks,
+    //        'chain': Signature[] chain,
+    //        'chord': Signature chord_callback,
+    //    }
+    Body            string        `json:"body"`
+    Headers         ST_Headers    `json:"headers"`
+    Properties      ST_Properties `json:"properties"`
+    ContentType     string        `json:"content-type"`
+    ContentEncoding string        `json:"content-encoding"`
+}
+
+/*
+	"properties": {
+		"priority": 0,
+		"body_encoding": "base64",
+		"correlation_id": "25abb5e6-d8c3-4b20-8dfb-7dc1be9ecf8f",
+		"reply_to": "2f6f7ea8-dcc3-30a7-ae0c-4eb03ae4910c",
+		"delivery_info": {
+			"routing_key": "celery",
+			"exchange": ""
+		},
+		"delivery_mode": 2,
+		"delivery_tag": "a18604c0-5422-4592-877b-72e106744981"
+	},
+ */
+type ST_Properties struct {
+    ContentEncoding string `json:"content_encoding"` // 事实上该字段移动到与properties并列的层级了
+    ContentType     string `json:"content_type"`     // 事实上该字段移动到与properties并列的层级了
+    CorrelationID   string `json:"correlation_id"`
+    ReplyTo         string `json:"replay_to"`
+    // 下面的在Celery文档中未曾提及
+    BodyEncoding string             `json:"body_encoding"`
+    Priority     int                `json:"priority"`
+    DeliveryInfo CeleryDeliveryInfo `json:"delivery_info"`
+    DeliveryMode int                `json:"delivery_mode"`
+    DeliveryTag  string             `json:"delivery_tag"`
+}
+
+/*
+真实json示例：
+	"headers": {
+		"origin": "gen66194@DanceinydeMacBook-Pro.local",
+		"root_id": "25abb5e6-d8c3-4b20-8dfb-7dc1be9ecf8f",
+		"expires": null,
+		"shadow": null,
+		"id": "25abb5e6-d8c3-4b20-8dfb-7dc1be9ecf8f",
+		"kwargsrepr": "{'y': 2878, 'x': 5456}",
+		"lang": "py",
+		"retries": 0,
+		"task": "worker.add_reflect",
+		"group": null,
+		"timelimit": [null, null],
+		"parent_id": null,
+		"argsrepr": "()",
+		"eta": null
+	},
+ */
+type ST_Headers struct {
+    Lang     string    `json:"lang"`
+    Task     string    `json:"task"`      // task name
+    TaskId   string    `json:"id"`        // uuid
+    RootId   string    `json:"root_id"`   // uuid
+    ParentId string    `json:"parent_id"` // uuid
+    Group    string    `json:"group_id"`  // uuid group_id
+    Retries  int       `json:"retries"`
+    ETA      time.Time `json:"eta" time_format:"2006-01-02T15:04:05"`
+    Expires  time.Time `json:"expires" time_format:"2006-01-02T15:04:05"`
+    Origin   string    `json:"origin"` // optional
+    /*TODO
+        'meth': string method_name,
+        'shadow': string alias_name,
+        'timelimit': (soft, hard),
+        'argsrepr': str repr(args),
+        'kwargsrepr': str repr(kwargs),
+    */
 }
 
 func (cm *CeleryMessage) reset() {
-    cm.Headers = nil
+    cm.Headers = ST_Headers{}
     cm.Body = ""
     cm.Properties.CorrelationID = generateUUID()
     cm.Properties.ReplyTo = generateUUID()
@@ -31,32 +147,31 @@ func (cm *CeleryMessage) reset() {
 var celeryMessagePool = sync.Pool{
     New: func() interface{} {
         return &CeleryMessage{
-            Body:        "",
-            Headers:     nil,
-            ContentType: "application/json",
-            Properties: CeleryProperties{
-                BodyEncoding:  "base64",
-                CorrelationID: generateUUID(),
-                ReplyTo:       generateUUID(),
-                //DeliveryInfo:  *getDefaultCeleryDeliveryInfo(),
-                DeliveryMode: 2,
-                DeliveryTag:  generateUUID(),
+            Body: "",
+            Headers: ST_Headers{
+                Lang: "golang",
             },
+            ContentType:     "application/json",
             ContentEncoding: "utf-8",
+            Properties: ST_Properties{
+                BodyEncoding: "base64",
+                // optional
+                ReplyTo: generateUUID(),
+                //DeliveryMode: 2,
+                //DeliveryTag:  generateUUID(),
+            },
         }
     },
 }
 
 func getDefaultCeleryDeliveryInfo() *CeleryDeliveryInfo {
     return &CeleryDeliveryInfo{
-        Priority:   0,
         RoutingKey: "celery",
-        Exchange:   "celery",
+        Exchange:   "",
     }
 }
-func NewCeleryDeliveryInfo(priority int, routingKey string, exchange string) *CeleryDeliveryInfo {
+func NewCeleryDeliveryInfo(routingKey string, exchange string) *CeleryDeliveryInfo {
     return &CeleryDeliveryInfo{
-        Priority:   priority,
         RoutingKey: routingKey,
         Exchange:   exchange,
     }
@@ -71,43 +186,41 @@ func getCeleryMessage(encodedTaskMessage string, deliveryInfo *CeleryDeliveryInf
     return msg
 }
 
+func loadCeleryMessage(task *CeleryTask) *CeleryMessage {
+    msg := celeryMessagePool.Get().(*CeleryMessage)
+    msg.Body = task.EncodeBody();
+    msg.Properties.DeliveryInfo = *getDefaultCeleryDeliveryInfo()
+    msg.Properties.Priority = task.Priority
+    msg.Properties.CorrelationID = task.Id
+    msg.Headers.RootId = task.Id
+    msg.Headers.TaskId = task.Id
+    msg.Headers.Task = task.Task
+    msg.Headers.ETA = task.ETA
+    msg.Headers.Expires = task.Expires
+    msg.Headers.Retries = task.Retries
+    return msg;
+}
 func releaseCeleryMessage(v *CeleryMessage) {
     v.reset()
     celeryMessagePool.Put(v)
 }
 
-// CeleryProperties represents properties json
-type CeleryProperties struct {
-    BodyEncoding  string             `json:"body_encoding"`
-    CorrelationID string             `json:"correlation_id"`
-    ReplyTo       string             `json:"replay_to"`
-    DeliveryInfo  CeleryDeliveryInfo `json:"delivery_info"`
-    DeliveryMode  int                `json:"delivery_mode"`
-    DeliveryTag   string             `json:"delivery_tag"`
-}
-
 // CeleryDeliveryInfo represents deliveryinfo json
 type CeleryDeliveryInfo struct {
-    Priority   int    `json:"priority"`
     RoutingKey string `json:"routing_key"`
     Exchange   string `json:"exchange"`
 }
 
 // GetTaskMessage retrieve and decode task messages from broker
-func (cm *CeleryMessage) GetTaskMessage() *TaskMessage {
+func (cm *CeleryMessage) GetTaskMessage() *CeleryTask {
     // ensure content-type is 'application/json'
-    if cm.ContentType != "application/json" {
-        log.Println("unsupported content type " + cm.ContentType)
+    if cm.Properties.ContentType != "application/json" {
+        log.Println("unsupported content type " + cm.Properties.ContentType)
         return nil
     }
     // ensure body encoding is base64
-    if cm.Properties.BodyEncoding != "base64" {
-        log.Println("unsupported body encoding " + cm.Properties.BodyEncoding)
-        return nil
-    }
-    // ensure content encoding is utf-8
-    if cm.ContentEncoding != "utf-8" {
-        log.Println("unsupported encoding " + cm.ContentEncoding)
+    if cm.Properties.ContentEncoding != "base64" {
+        log.Println("unsupported body encoding " + cm.Properties.ContentEncoding)
         return nil
     }
     // decode body
@@ -119,41 +232,22 @@ func (cm *CeleryMessage) GetTaskMessage() *TaskMessage {
     return taskMessage
 }
 
-// TaskMessage is celery-compatible message
-// example:
-/*
- {'origin': 'gen25458@iZuf6abi5ju3zkr4s85m6fZ',
-  'lang': 'py',
-  'task': 'App.aliyun_api.checkInstance',
-  'group': None,
-  'root_id': '93db85b1-28d5-4e19-9eee-80588fbfedd3',
-  'delivery_info': {u'priority': 0, u'redelivered': None, u'routing_key': 'cpu', u'exchange': u''},
-  'expires': None,
-  'correlation_id': '93db85b1-28d5-4e19-9eee-80588fbfedd3',
-  'retries': 0,
-  'timelimit': [None, None],
-  'argsrepr': "['005aff03e0524920b7a4d1386b886b04', 172800]",
-  'eta': None,
-  'parent_id': None,
-  'reply_to': '227beeb6-f7b8-30a3-951c-d51bf55c0998',
-  'id': '93db85b1-28d5-4e19-9eee-80588fbfedd3',
-  'kwargsrepr': '{}'
-  }
- */
-type TaskMessage struct {
-    ID      string                 `json:"id"`
+// 按照Celery现有的python实现，不是将CeleryTask直接进行json序列化
+type CeleryTask struct {
+    Id      string                 `json:"id"`
     Task    string                 `json:"task"`
     Args    []interface{}          `json:"args"`   //argsrepr
     Kwargs  map[string]interface{} `json:"kwargs"` //kwargsrepr
     Retries int                    `json:"retries"`
-    //MarshalJSON(deprecated in Go2, though) implements the json.Marshaler interface.
-    //default use format RFC3339 = "2006-01-02T15:04:05Z07:00"
-    ETA     time.Time `json:"eta"`
-    Expires time.Time `json:"expires"`
+    // Protocol 2: ISO8601，格式："2006-01-02T15:04:05"， 与RFC3339: "2006-01-02T15:04:05Z07:00"不同
+    ETA      time.Time              `json:"eta" time_format:"2006-01-02T15:04:05"`
+    Expires  time.Time              `json:"expires" time_format:"2006-01-02T15:04:05"`
+    Priority int                    `json:"priority"`
+    Embed    map[string]interface{} `json:"embed"`
 }
 
-func (tm *TaskMessage) reset() {
-    tm.ID = generateUUID()
+func (tm *CeleryTask) reset() {
+    tm.Id = generateUUID()
     tm.Task = ""
     tm.Args = nil
     tm.Kwargs = nil
@@ -161,39 +255,35 @@ func (tm *TaskMessage) reset() {
 
 var taskMessagePool = sync.Pool{
     New: func() interface{} {
-        return &TaskMessage{
-            ID:      generateUUID(),
+        return &CeleryTask{
+            Id:      generateUUID(),
             Retries: 0,
-            Kwargs:  nil,
-            //ETA:     time.Now().Format(time.RFC3339),
-            ETA: time.Now(),
         }
     },
 }
 
-func getTaskMessage(task string) *TaskMessage {
-    msg := taskMessagePool.Get().(*TaskMessage)
+func getTaskObj(task string) *CeleryTask {
+    msg := taskMessagePool.Get().(*CeleryTask)
     msg.Task = task
     msg.Args = make([]interface{}, 0)
     msg.Kwargs = make(map[string]interface{})
-    //msg.ETA = time.Now().Format(time.RFC3339)
-    msg.ETA = time.Now()
+    msg.Embed = make(map[string]interface{})
     msg.Expires = time.Now().AddDate(1, 0, 0)
     return msg
 }
 
-func releaseTaskMessage(v *TaskMessage) {
+func releaseTaskMessage(v *CeleryTask) {
     v.reset()
     taskMessagePool.Put(v)
 }
 
-// DecodeTaskMessage decodes base64 encrypted body and return TaskMessage object
-func DecodeTaskMessage(encodedBody string) (*TaskMessage, error) {
+// DecodeTaskMessage decodes base64 encrypted body and return Itf_CeleryTask object
+func DecodeTaskMessage(encodedBody string) (*CeleryTask, error) {
     body, err := base64.StdEncoding.DecodeString(encodedBody)
     if err != nil {
         return nil, err
     }
-    message := taskMessagePool.Get().(*TaskMessage)
+    message := taskMessagePool.Get().(*CeleryTask)
     err = json.Unmarshal(body, message)
     if err != nil {
         return nil, err
@@ -201,15 +291,21 @@ func DecodeTaskMessage(encodedBody string) (*TaskMessage, error) {
     return message, nil
 }
 
-// Encode returns base64 json encoded string
-func (tm *TaskMessage) Encode() (string, error) {
-    jsonData, err := json.Marshal(tm)
-    logs.Debug(string(jsonData))
+// EncodeBody returns base64 json encoded string
+func (tm *CeleryTask) EncodeBody() string {
+    // python兼容版本
+    // args, kwargs, embed = self._payload # _payload is body
+    var payloadList = make([]interface{}, 3)
+    payloadList[0] = tm.Args
+    payloadList[1] = tm.Kwargs
+    payloadList[2] = tm.Embed
+    var jsonData, err = json.Marshal(payloadList)
+    log.Printf("json body: %s", jsonData)
     if err != nil {
-        return "", err
+        log.Fatalf("celery message encode failed: %s", err.Error())
     }
     encodedData := base64.StdEncoding.EncodeToString(jsonData)
-    return encodedData, err
+    return encodedData
 }
 
 // ResultMessage is return message received from broker

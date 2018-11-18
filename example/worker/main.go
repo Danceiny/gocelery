@@ -7,12 +7,12 @@ import (
 	"github.com/Danceiny/gocelery"
 )
 
-// Celery Task using args
+// Celery Itf_CeleryTask using args
 func add(a int, b int) int {
 	return a + b
 }
 
-// AddTask is Celery Task using kwargs
+// AddTask is Celery Itf_CeleryTask using kwargs
 type AddTask struct {
 	a int // x
 	b int // y

@@ -1,7 +1,6 @@
 package gocelery
 
 import (
-    "encoding/json"
     "fmt"
 
     "github.com/garyburd/redigo/redis"
@@ -13,9 +12,9 @@ type RedisCeleryBackend struct {
 }
 
 // Support Broker Options: https://github.com/gocelery/gocelery/pull/31
-func NewRedisCeleryBackend(host string, db int, pass string) *RedisCeleryBackend {
+func NewRedisCeleryBackend(host string, port int, db int, pass string) *RedisCeleryBackend {
     return &RedisCeleryBackend{
-        Pool: NewRedisPool(host, db, pass),
+        Pool: NewRedisPool(host, port, db, pass),
     }
 }
 

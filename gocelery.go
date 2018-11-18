@@ -15,7 +15,7 @@ type CeleryClient struct {
 // CeleryBroker is interface for celery broker database
 type CeleryBroker interface {
     SendCeleryMessage(*CeleryMessage) error
-    GetTaskMessage() (*TaskMessage, error) // must be non-blocking
+    GetTaskMessage() (*CeleryTask, error) // must be non-blocking
 }
 
 // CeleryBackend is interface for celery backend database
@@ -50,29 +50,35 @@ func (cc *CeleryClient) StopWorker() {
 
 // Delay gets asynchronous result
 func (cc *CeleryClient) Delay(task string, args ...interface{}) (*AsyncResult, error) {
-    celeryTask := getTaskMessage(task)
+    celeryTask := getTaskObj(task)
     celeryTask.Args = args
     return cc.delay(celeryTask, nil)
 }
 
 // DelayKwargs gets asynchronous results with argument map
 func (cc *CeleryClient) DelayKwargs(task string, args map[string]interface{}) (*AsyncResult, error) {
-    celeryTask := getTaskMessage(task)
+    celeryTask := getTaskObj(task)
     celeryTask.Kwargs = args
     return cc.delay(celeryTask, nil)
 }
 func (cc *CeleryClient) ApplyAsync(task string, args []interface{}, kwargs map[string]interface{},
-    eta time.Time, expires time.Time, retry bool, queue string,
+    expires *time.Time, eta *time.Time, retry bool, queue string,
     priority int, routingKey string, exchange string) (*AsyncResult, error) {
-    //TODO
-    celeryTask := getTaskMessage(task)
+    celeryTask := getTaskObj(task)
     if kwargs != nil {
         celeryTask.Kwargs = kwargs
     }
-    celeryTask.Args = args
-    celeryTask.ETA = eta
-    celeryTask.Expires = expires
-    return cc.delay(celeryTask, NewCeleryDeliveryInfo(priority, routingKey, exchange))
+    if args != nil {
+        celeryTask.Args = args
+    }
+    if eta != nil {
+        celeryTask.ETA = *eta
+    }
+    if expires != nil {
+        celeryTask.Expires = *expires
+    }
+    celeryTask.Priority = priority
+    return cc.delay(celeryTask, NewCeleryDeliveryInfo(routingKey, exchange))
 
     /*
 
@@ -162,32 +168,25 @@ func (cc *CeleryClient) ApplyAsync(task string, args []interface{}, kwargs map[s
      */
 
 }
-func (cc *CeleryClient) delay(task *TaskMessage, info *CeleryDeliveryInfo) (*AsyncResult, error) {
+func (cc *CeleryClient) delay(task *CeleryTask, info *CeleryDeliveryInfo) (*AsyncResult, error) {
     defer releaseTaskMessage(task)
-    encodedMessage, err := task.Encode()
-    if err != nil {
-        return nil, err
-    }
-    if info == nil {
-        info = getDefaultCeleryDeliveryInfo()
-    }
-    celeryMessage := getCeleryMessage(encodedMessage, info)
+    celeryMessage := loadCeleryMessage(task);
     defer releaseCeleryMessage(celeryMessage)
-    err = cc.broker.SendCeleryMessage(celeryMessage)
+    err := cc.broker.SendCeleryMessage(celeryMessage)
     if err != nil {
         return nil, err
     }
     return &AsyncResult{
-        taskID:  task.ID,
+        taskID:  task.Id,
         backend: cc.backend,
     }, nil
 }
 
-// CeleryTask is an interface that represents actual task
-// Passing CeleryTask interface instead of function pointer
+// Itf_CeleryTask is an interface that represents actual task
+// Passing Itf_CeleryTask interface instead of function pointer
 // avoids reflection and may have performance gain.
 // ResultMessage must be obtained using GetResultMessage()
-type CeleryTask interface {
+type Itf_CeleryTask interface {
     // ParseKwargs - define a method to parse kwargs
     ParseKwargs(map[string]interface{}) error
 
@@ -200,6 +199,10 @@ type AsyncResult struct {
     taskID  string
     backend CeleryBackend
     result  *ResultMessage
+}
+
+func (ar *AsyncResult) GetTaskId() string {
+    return ar.taskID
 }
 
 // Get gets actual result from redis

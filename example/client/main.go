@@ -5,18 +5,54 @@ import (
     "math/rand"
     "reflect"
     "time"
-
     "github.com/Danceiny/gocelery"
+    "os/exec"
+    "bytes"
+    "log"
 )
 
 // Run Celery Worker First!
 // celery -A worker worker --loglevel=debug --without-heartbeat --without-mingle
 
+func runCeleryWorker(pyEnv string) {
+    activatePyEnvCmd := ""
+    if pyEnv != "" {
+        activatePyEnvCmd = "source activate " + pyEnv + " &&"
+    }
+    cmd := exec.Command("/bin/bash", "-c", fmt.Sprintf("%s celery -A worker worker --loglevel=debug --without-heartbeat "+
+        "--without-mingle", activatePyEnvCmd))
+    var out bytes.Buffer
+    cmd.Stdout = &out
+    err := cmd.Run()
+    if err != nil {
+        log.Printf("run celery worker failed: %s", err.Error())
+    }
+    return
+}
+
+func runRedisInDocker(password string) {
+    var requirePass = "";
+    if password != "" {
+        requirePass = "--requirepass " + password;
+    }
+    err := exec.Command("/bin/bash", "-c", fmt.Sprintf(
+        "docker run --name redis-6379 -p 6379:6379 -d redis %s", requirePass)).Run()
+    if err != nil {
+        log.Printf("run redis server failed: %s", err.Error())
+    }
+}
 func main() {
+    var redisPassword = ""
+    var redisHost = "localhost"
+    var redisPort = 6379
+    //// 启动redis
+    //runRedisInDocker(redisPassword)
+    //// 启动celery worker (python)
+    //runCeleryWorker("py27")
 
     // create broker and backend
-    celeryBroker := gocelery.NewRedisCeleryBroker("localhost:6379", 0, "")
-    celeryBackend := gocelery.NewRedisCeleryBackend("localhost:6379", 0, "")
+    celeryBroker := gocelery.NewRedisCeleryBroker(redisHost, redisPort, 0, redisPassword)
+    celeryBackend := gocelery.NewRedisCeleryBackend(redisHost, redisPort, 0, redisPassword)
 
     // AMQP example
     //celeryBroker := gocelery.NewAMQPCeleryBroker("amqp://")
@@ -26,13 +62,14 @@ func main() {
     celeryClient, _ := gocelery.NewCeleryClient(celeryBroker, celeryBackend, 0)
 
     arg1 := rand.Intn(10)
-    arg2 := rand.Intn(10)
+    arg2 := rand.Intn(110)
 
     asyncResult, err := celeryClient.Delay("worker.add", arg1, arg2)
     if err != nil {
+        log.Fatalf("%s", err.Error())
         panic(err)
     }
-
+    log.Printf("task id of async result: %s", asyncResult.GetTaskId())
     res, err := asyncResult.Get(10 * time.Second)
     if err != nil {
         fmt.Println(err)
@@ -41,8 +78,9 @@ func main() {
     }
 
     // test more detailed apply
+    expireTime := time.Now().Add(100 * time.Second);
     asyncResult, err = celeryClient.ApplyAsync("worker.add", []interface{}{arg1, arg2},
-        nil, time.Now().Add(5*time.Second), time.Now().Add(10*time.Second), true, "testqueue", 10, "testroutingkey", "")
+        nil, &expireTime, nil, true, "testqueue", 10, "testroutingkey", "")
     if err != nil {
         panic(err)
     }

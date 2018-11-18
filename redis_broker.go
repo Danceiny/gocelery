@@ -1,12 +1,12 @@
 package gocelery
 
 import (
-    "encoding/json"
     "fmt"
     "sync"
     "time"
 
     "github.com/garyburd/redigo/redis"
+    "log"
 )
 
 // RedisCeleryBroker is CeleryBroker for Redis
@@ -31,12 +31,12 @@ func BrokerQueueName(queueName string) BrokerOptions {
 }
 
 // NewRedisPool creates pool of redis connections
-func NewRedisPool(host string, db int, pass string) *redis.Pool {
+func NewRedisPool(host string, port int, db int, pass string) *redis.Pool {
     return &redis.Pool{
         MaxIdle:     3,
         IdleTimeout: 240 * time.Second,
         Dial: func() (redis.Conn, error) {
-            c, err := redis.Dial("tcp", host, redis.DialDatabase(db))
+            c, err := redis.Dial("tcp", fmt.Sprintf("%s:%d", host, port), redis.DialDatabase(db))
             if err != nil {
                 return nil, err
             }
@@ -54,14 +54,13 @@ func NewRedisPool(host string, db int, pass string) *redis.Pool {
         },
     }
 }
-
-func NewRedisCeleryBroker(host string, db int, pass string, options ...BrokerOptions) *RedisCeleryBroker {
+func NewRedisCeleryBroker(host string, port int, db int, pass string, options ...BrokerOptions) *RedisCeleryBroker {
     do := brokerOptions{"celery"}
     for _, opt := range options {
         opt.f(&do)
     }
     return &RedisCeleryBroker{
-        Pool:      NewRedisPool(host, db, pass),
+        Pool:      NewRedisPool(host, port, db, pass),
         QueueName: do.QueueName,
     }
 }
@@ -69,14 +68,7 @@ func NewRedisCeleryBroker(host string, db int, pass string, options ...BrokerOpt
 // SendCeleryMessage sends CeleryMessage to redis queue
 func (cb *RedisCeleryBroker) SendCeleryMessage(message *CeleryMessage) error {
     jsonBytes, err := json.Marshal(message)
-    //a,err:=DecodeTaskMessage(string(jsonBytes))
-    //if err!=nil{
-    //    logs.Info(err)
-    //}
-    //logs.Info(a)
-    //if err != nil {
-    //    return err
-    //}
+    log.Printf("Send Celery message by redis broker: \n%s", jsonBytes)
     conn := cb.Get()
     defer conn.Close()
     _, err = conn.Do("LPUSH", cb.QueueName, jsonBytes)
@@ -109,7 +101,7 @@ func (cb *RedisCeleryBroker) GetCeleryMessage() (*CeleryMessage, error) {
 }
 
 // GetTaskMessage retrieves task message from redis queue
-func (cb *RedisCeleryBroker) GetTaskMessage() (*TaskMessage, error) {
+func (cb *RedisCeleryBroker) GetTaskMessage() (*CeleryTask, error) {
     celeryMessage, err := cb.GetCeleryMessage()
     if err != nil {
         return nil, err

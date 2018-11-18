@@ -13,8 +13,8 @@ func add(a int, b int) int {
 
 // newCeleryWorker creates celery worker
 func newCeleryWorker(numWorkers int) *CeleryWorker {
-    broker := NewRedisCeleryBroker("localhost:6379", 0, "")
-    backend := NewRedisCeleryBackend("localhost:6379", 0, "")
+    broker := NewRedisCeleryBroker("localhost", 6379, 0, "")
+    backend := NewRedisCeleryBackend("localhost", 6379, 0, "")
     celeryWorker := NewCeleryWorker(broker, backend, numWorkers)
     return celeryWorker
 }
@@ -50,8 +50,8 @@ func TestRunTask(t *testing.T) {
     res := add(args[0].(int), args[1].(int))
 
     // construct task message
-    taskMessage := &TaskMessage{
-        ID:      generateUUID(),
+    taskMessage := &CeleryTask{
+        Id:      generateUUID(),
         Task:    taskName,
         Args:    args,
         Kwargs:  nil,
