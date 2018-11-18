@@ -22,7 +22,7 @@ func makeCeleryMessage() (*CeleryMessage, error) {
 func getBrokers() []CeleryBroker {
     return []CeleryBroker{
         NewRedisCeleryBroker("localhost", 6379, 0, ""),
-        //NewAMQPCeleryBroker("amqp://"),
+        // NewAMQPCeleryBroker("amqp://"),
     }
 }
 

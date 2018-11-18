@@ -49,7 +49,7 @@ func (w *CeleryWorker) StartWorker() {
                         continue
                     }
 
-                    //log.Printf("WORKER %d task message received: %v\n", workerID, taskMessage)
+                    // log.Printf("WORKER %d task message received: %v\n", workerID, taskMessage)
 
                     // run task
                     resultMsg, err := w.RunTask(taskMessage)
@@ -115,7 +115,7 @@ func (w *CeleryWorker) RunTask(message *CeleryTask) (*ResultMessage, error) {
     // convert to task interface
     taskInterface, ok := task.(Itf_CeleryTask)
     if ok {
-        //log.Println("using task interface")
+        // log.Println("using task interface")
         if err := taskInterface.ParseKwargs(message.Kwargs); err != nil {
             return nil, err
         }
@@ -125,7 +125,7 @@ func (w *CeleryWorker) RunTask(message *CeleryTask) (*ResultMessage, error) {
         }
         return getResultMessage(val), err
     }
-    //log.Println("using reflection")
+    // log.Println("using reflection")
 
     // use reflection to execute function ptr
     taskFunc := reflect.ValueOf(task)
@@ -159,6 +159,6 @@ func runTaskFunc(taskFunc *reflect.Value, message *CeleryTask) (*ResultMessage, 
     if len(res) == 0 {
         return nil, nil
     }
-    //defer releaseResultMessage(resultMessage)
+    // defer releaseResultMessage(resultMessage)
     return getReflectionResultMessage(&res[0]), nil
 }

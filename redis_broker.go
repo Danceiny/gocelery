@@ -2,11 +2,11 @@ package gocelery
 
 import (
     "fmt"
+    "log"
     "sync"
     "time"
 
     "github.com/garyburd/redigo/redis"
-    "log"
 )
 
 // RedisCeleryBroker is CeleryBroker for Redis

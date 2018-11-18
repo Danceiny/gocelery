@@ -6,6 +6,7 @@ import (
     "reflect"
     "sync"
     "time"
+
     "github.com/liamylian/jsontime"
 )
 
@@ -143,7 +144,7 @@ func (cm *CeleryMessage) reset() {
     cm.Properties.DeliveryTag = generateUUID()
 }
 
-//TODO: support customized delivery_info property
+// TODO: support customized delivery_info property
 var celeryMessagePool = sync.Pool{
     New: func() interface{} {
         return &CeleryMessage{
@@ -157,8 +158,8 @@ var celeryMessagePool = sync.Pool{
                 BodyEncoding: "base64",
                 // optional
                 ReplyTo: generateUUID(),
-                //DeliveryMode: 2,
-                //DeliveryTag:  generateUUID(),
+                // DeliveryMode: 2,
+                // DeliveryTag:  generateUUID(),
             },
         }
     },
@@ -236,8 +237,8 @@ func (cm *CeleryMessage) GetTaskMessage() *CeleryTask {
 type CeleryTask struct {
     Id      string                 `json:"id"`
     Task    string                 `json:"task"`
-    Args    []interface{}          `json:"args"`   //argsrepr
-    Kwargs  map[string]interface{} `json:"kwargs"` //kwargsrepr
+    Args    []interface{}          `json:"args"`   // argsrepr
+    Kwargs  map[string]interface{} `json:"kwargs"` // kwargsrepr
     Retries int                    `json:"retries"`
     // Protocol 2: ISO8601，格式："2006-01-02T15:04:05"， 与RFC3339: "2006-01-02T15:04:05Z07:00"不同
     ETA      time.Time              `json:"eta" time_format:"2006-01-02T15:04:05"`

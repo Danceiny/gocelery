@@ -40,7 +40,7 @@ func NewAMQPQueue(name string) *AMQPQueue {
     }
 }
 
-//AMQPCeleryBroker is RedisBroker for AMQP
+// AMQPCeleryBroker is RedisBroker for AMQP
 type AMQPCeleryBroker struct {
     *amqp.Channel
     connection       *amqp.Connection
@@ -56,7 +56,7 @@ func NewAMQPConnection(host string) (*amqp.Connection, *amqp.Channel) {
     if err != nil {
         panic(err)
     }
-    //defer connection.Close()
+    // defer connection.Close()
     channel, err := connection.Channel()
     if err != nil {
         panic(err)
@@ -103,7 +103,7 @@ func (b *AMQPCeleryBroker) StartConsumingChannel() error {
 // SendCeleryMessage sends CeleryMessage to broker
 func (b *AMQPCeleryBroker) SendCeleryMessage(message *CeleryMessage) error {
     taskMessage := message.GetTaskMessage()
-    //log.Printf("sending task Id %s\n", taskMessage.Id)
+    // log.Printf("sending task Id %s\n", taskMessage.Id)
     queueName := "celery"
     _, err := b.QueueDeclare(
         queueName, // name

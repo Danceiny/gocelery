@@ -3,6 +3,7 @@ package gocelery
 import (
     "strings"
     "time"
+
     "github.com/streadway/amqp"
 )
 
@@ -107,7 +108,7 @@ func (b *AMQPCeleryBackend) SetResult(taskID string, result *ResultMessage) erro
 
     result.ID = taskID
 
-    //queueName := taskID
+    // queueName := taskID
     queueName := strings.Replace(taskID, "-", "", -1)
 
     // autodelete is automatically set to true by python

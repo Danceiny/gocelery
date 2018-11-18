@@ -21,7 +21,7 @@ func NewRedisCeleryBackend(host string, port int, db int, pass string) *RedisCel
 // GetResult calls API to get asynchronous result
 // Should be called by AsyncResult
 func (cb *RedisCeleryBackend) GetResult(taskID string) (*ResultMessage, error) {
-    //"celery-task-meta-" + taskID
+    // "celery-task-meta-" + taskID
     conn := cb.Get()
     defer conn.Close()
     val, err := conn.Do("GET", fmt.Sprintf("celery-task-meta-%s", taskID))
