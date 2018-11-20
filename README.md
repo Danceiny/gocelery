@@ -191,23 +191,44 @@ func main() {
 go run example/client/main.go
 ```
 
-## Sample Celery Task Message
+## Sample Celery Task Message (Protocol 2)
 
 ```javascript
+// 参考：http://docs.celeryproject.org/en/latest/internals/protocol.html#definition
+// example:
+/*
 {
-    "expires": null,
-    "utc": true,
-    "args": [5456, 2878],
-    "chord": null,
-    "callbacks": null,
-    "errbacks": null,
-    "taskset": null,
-    "id": "c8535050-68f1-4e18-9f32-f52f1aab6d9b",
-    "retries": 0,
-    "task": "worker.add",
-    "timelimit": [null, null],
-    "eta": null,
-    "kwargs": {}
+	"body": "W1tdLCB7InkiOiAyODc4LCAieCI6IDU0NTZ9LCB7ImNob3JkIjogbnVsbCwgImNhbGxiYWNrcyI6IG51bGwsICJlcnJiYWNrcyI6IG51bGwsICJjaGFpbiI6IG51bGx9XQ==",
+	"headers": {
+		"origin": "gen66194@DanceinydeMacBook-Pro.local",
+		"root_id": "25abb5e6-d8c3-4b20-8dfb-7dc1be9ecf8f",
+		"expires": null,
+		"shadow": null,
+		"id": "25abb5e6-d8c3-4b20-8dfb-7dc1be9ecf8f",
+		"kwargsrepr": "{'y': 2878, 'x': 5456}",
+		"lang": "py",
+		"retries": 0,
+		"task": "worker.add_reflect",
+		"group": null,
+		"timelimit": [null, null],
+		"parent_id": null,
+		"argsrepr": "()",
+		"eta": null
+	},
+	"properties": {
+		"priority": 0,
+		"body_encoding": "base64",
+		"correlation_id": "25abb5e6-d8c3-4b20-8dfb-7dc1be9ecf8f",
+		"reply_to": "2f6f7ea8-dcc3-30a7-ae0c-4eb03ae4910c",
+		"delivery_info": {
+			"routing_key": "celery",
+			"exchange": ""
+		},
+		"delivery_mode": 2,
+		"delivery_tag": "a18604c0-5422-4592-877b-72e106744981"
+	},
+	"content-type": "application/json",
+	"content-encoding": "utf-8"
 }
 ```
 

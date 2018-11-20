@@ -115,7 +115,6 @@ func (w *CeleryWorker) RunTask(message *CeleryTask) (*ResultMessage, error) {
 	// convert to task interface
 	taskInterface, ok := task.(Itf_CeleryTask)
 	if ok {
-		log.Println("using task interface")
 		if err := taskInterface.ParseKwargs(message.Kwargs); err != nil {
 			return nil, err
 		}
