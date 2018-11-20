@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/Danceiny/gocelery"
+	"time"
 )
 
 // Celery Itf_CeleryTask using args
@@ -49,8 +48,8 @@ func (a *AddTask) RunTask() (interface{}, error) {
 
 func main() {
 	// create broker and backend
-	celeryBroker := gocelery.NewRedisCeleryBroker("localhost:6379", 0,"")
-	celeryBackend := gocelery.NewRedisCeleryBackend("localhost:6379", 0,"")
+	celeryBroker := gocelery.NewRedisCeleryBroker("localhost", 6379, 0, "")
+	celeryBackend := gocelery.NewRedisCeleryBackend("localhost", 6379, 0, "")
 
 	// AMQP example
 	//celeryBroker := gocelery.NewAMQPCeleryBroker("amqp://")
@@ -67,6 +66,6 @@ func main() {
 	// Start Worker - blocking method
 	go celeryClient.StartWorker()
 	// Wait 30 seconds and stop all workers
-	time.Sleep(30 * time.Second)
+	time.Sleep(60 * time.Second)
 	celeryClient.StopWorker()
 }

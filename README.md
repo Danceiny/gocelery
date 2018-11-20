@@ -4,7 +4,6 @@ Go Client/Server for Celery Distributed Task Queue
 
 With new features updated contributed by @Danceiny.
 
-[![Coverage Status](https://coveralls.io/repos/github/Danceiny/gocelery/badge.svg?branch=master)](https://coveralls.io/github/Danceiny/gocelery?branch=master)
 [![GoDoc](https://godoc.org/github.com/Danceiny/gocelery?status.svg)](https://godoc.org/github.com/Danceiny/gocelery)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Danceiny/gocelery/blob/master/LICENSE)
 [![motivation](https://img.shields.io/badge/made%20with-%E2%99%A1-ff69b4.svg)](https://github.com/Danceiny/gocelery)

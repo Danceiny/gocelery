@@ -5,5 +5,6 @@ from worker import add, add_reflect
 #print('Result: {}'.format(ar.get()))
 
 ar = add_reflect.apply_async(kwargs={'x': 5456, 'y': 2878}, serializer='json')
+print("Task Id: {}".format(ar.id))
 print('Result: {}'.format(ar.get()))
 
