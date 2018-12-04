@@ -1,14 +1,15 @@
 package main
 
 import (
+    "bytes"
     "fmt"
+    "log"
     "math/rand"
+    "os/exec"
     "reflect"
     "time"
+
     "github.com/Danceiny/gocelery"
-    "os/exec"
-    "bytes"
-    "log"
 )
 
 // Run Celery Worker First!
@@ -45,21 +46,21 @@ func main() {
     var redisPassword = ""
     var redisHost = "localhost"
     var redisPort = 6379
-    //// 启动redis
-    //runRedisInDocker(redisPassword)
-    //// 启动celery worker (python)
-    //runCeleryWorker("py27")
+    // // 启动redis
+    // runRedisInDocker(redisPassword)
+    // // 启动celery worker (python)
+    // runCeleryWorker("py27")
 
     // create broker and backend
     celeryBroker := gocelery.NewRedisCeleryBroker(redisHost, redisPort, 0, redisPassword)
     celeryBackend := gocelery.NewRedisCeleryBackend(redisHost, redisPort, 0, redisPassword)
 
     // AMQP example
-    //celeryBroker := gocelery.NewAMQPCeleryBroker("amqp://")
-    //celeryBackend := gocelery.NewAMQPCeleryBackend("amqp://")
+    // celeryBroker := gocelery.NewAMQPCeleryBroker("amqp://")
+    // celeryBackend := gocelery.NewAMQPCeleryBackend("amqp://")
 
     // create client
-    celeryClient, _ := gocelery.NewCeleryClient(celeryBroker, celeryBackend, 0)
+    celeryClient, _ := gocelery.NewCeleryClient(celeryBroker, celeryBackend)
 
     arg1 := rand.Intn(10)
     arg2 := rand.Intn(110)
