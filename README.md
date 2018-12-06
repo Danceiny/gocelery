@@ -12,7 +12,8 @@ With new features updated contributed by @Danceiny.
 - [*] ApplyAsync call just like that in Python (currently supported in go client).
 - [ ] TODO: Support More options in go worker.
 
-## Why?
+## Notice
+- `syscall.Exec` task is not allowed (will executed only once and the worker will exit)
 
 Having being involved in a number of projects migrating server from python to go, I have realized Go can help improve performance of existing python web applications.
 Celery distributed tasks are used heavily in many python web applications and this library allows you to implement celery workers in Go as well as being able to submit celery tasks in Go.
