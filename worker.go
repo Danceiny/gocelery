@@ -30,7 +30,6 @@ func NewCeleryWorker(broker CeleryBroker, backend CeleryBackend, numWorkers int)
 
 // StartWorker starts celery worker
 func (w *CeleryWorker) StartWorker() {
-
 	w.stopChannel = make(chan struct{}, 1)
 	w.workWG.Add(w.numWorkers)
 
@@ -42,7 +41,6 @@ func (w *CeleryWorker) StartWorker() {
 				case <-w.stopChannel:
 					return
 				default:
-
 					// process messages
 					taskMessage, err := w.broker.GetTask()
 					if err != nil || taskMessage == nil {
@@ -50,19 +48,17 @@ func (w *CeleryWorker) StartWorker() {
 					}
 
 					log.Printf("WORKER %d task message received: %v\n", workerID, taskMessage)
-
 					// run task
 					resultMsg, err := w.RunTask(taskMessage)
 					if err != nil {
-						log.Println(err)
+						log.Printf("run error: %v", err)
 						continue
 					}
 					defer releaseResultMessage(resultMsg)
-
 					// push result to backend
 					err = w.backend.SetResult(taskMessage.Id, resultMsg)
 					if err != nil {
-						log.Println(err)
+						log.Printf("set result error: %v", err)
 						continue
 					}
 				}

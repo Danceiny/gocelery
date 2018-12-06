@@ -49,9 +49,17 @@ func (cc *CeleryServer) Register(name string, task interface{}) {
     cc.worker.Register(name, task)
 }
 
-// StartWorker starts celery workers
+// StartWorker starts celery workers infinite loop
 func (cc *CeleryServer) StartWorker() {
-    cc.worker.StartWorker()
+    result := make(chan int, 1)
+    // Start Worker - blocking method
+    go cc.worker.StartWorker()
+    for {
+        select {
+        case <-result:
+            return
+        }
+    }
 }
 
 // StopWorker stops celery workers
