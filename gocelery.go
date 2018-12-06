@@ -2,6 +2,10 @@ package gocelery
 
 import (
     "fmt"
+    "log"
+    "os"
+    "os/signal"
+    "syscall"
     "time"
 )
 
@@ -51,14 +55,14 @@ func (cc *CeleryServer) Register(name string, task interface{}) {
 
 // StartWorker starts celery workers infinite loop
 func (cc *CeleryServer) StartWorker() {
-    result := make(chan int, 1)
+    c := make(chan os.Signal)
+    signal.Notify(c, syscall.SIGTERM, syscall.SIGINT)
     // Start Worker - blocking method
     go cc.worker.StartWorker()
-    for {
-        select {
-        case <-result:
-            return
-        }
+    for s := range c {
+        log.Printf("signal received: %v, now stop worker...", s)
+        cc.StopWorker()
+        os.Exit(0)
     }
 }
 
