@@ -1,4 +1,4 @@
-module gocelery
+module github.com/Danceiny/gocelery
 
 require (
 	github.com/Danceiny/go.fastjson v0.0.0-20181120164724-e87b38eb40fa
