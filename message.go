@@ -12,7 +12,7 @@ import (
 
 // GLOBAL 替换掉 encoding/json
 var (
-	json    = fastjson.ConfigWithCustomTimeFormat
+	json    = fastjson.FastJson
 	ISO8601 = "2006-01-02T15:04:05"
 )
 
